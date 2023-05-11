@@ -25,7 +25,5 @@ def css_link(archivo):
 
 
 # Iniciar la app
-"""
 if __name__ == "__main__":
     app.run(debug=True)
-"""
