@@ -1,3 +1,4 @@
+// Obtener el elemento en el que va el juego
 let canvas = document.getElementById('game'),
     ctx = canvas.getContext('2d'),
     ballRadius = 9,
@@ -9,10 +10,10 @@ let canvas = document.getElementById('game'),
 let paddleHeight = 12,
     paddleWidth = 72;
 
-// Paddle start position
+// Posicion en la que inicia el juego
 let paddleX = (canvas.width - paddleWidth) / 2;
 
-// Bricks
+// Caracteristicas de las plataformas
 let rowCount = 5,
     columnCount = 9,
     brickWidth = 54,
@@ -22,20 +23,20 @@ let rowCount = 5,
     leftOffset = 33,
     score = 0;
 
-// Bricks array
+// Array con las plataformas
 let bricks = [];
 for (let c = 0; c < columnCount; c++) {
     bricks[c] = [];
     for (let r = 0; r < rowCount; r++) {
-        // Set position of bricks
+        // Se Establece la posicion de las plataformas
         bricks[c][r] = { x: 0, y: 0, status: 1 };
     }
 }
 
-// Mouse moving eventListener and function
+// Asignar movimiento del raton como evento que activa las funciones
 document.addEventListener("mousemove", mouseMoveHandler, false);
 
-// Move paddle with mouse
+// funcion para mover la plataforma inferior con el mouse
 function mouseMoveHandler(e) {
     var relativeX = e.clientX - canvas.offsetLeft;
     if (relativeX > 0 && relativeX < canvas.width) {
@@ -43,7 +44,7 @@ function mouseMoveHandler(e) {
     }
 }
 
-// Draw paddle
+// Dibujar la plataforma inferior
 function drawPaddle() {
     ctx.beginPath();
     ctx.roundRect(paddleX, canvas.height - paddleHeight, paddleWidth, paddleHeight, 30);
@@ -52,7 +53,7 @@ function drawPaddle() {
     ctx.closePath();
 }
 
-// Draw ball
+// Dibujar la bola
 function drawBall() {
     ctx.beginPath();
     ctx.arc(x, y, ballRadius, 0, Math.PI * 2);
@@ -61,7 +62,7 @@ function drawBall() {
     ctx.closePath();
 }
 
-// Draw Bricks
+// Dibujar las plataformas superiores
 function drawBricks() {
     for (let c = 0; c < columnCount; c++) {
         for (let r = 0; r < rowCount; r++) {
@@ -80,14 +81,14 @@ function drawBricks() {
     }
 }
 
-// Track score
+// Contador de puntos
 function trackScore() {
     ctx.font = 'bold 16px sans-serif';
     ctx.fillStyle = '#333';
     ctx.fillText('Score : ' + score, 8, 24);
 }
 
-// Check ball hit bricks
+// Impacto de la bola con las plataformas
 function hitDetection() {
     for (let c = 0; c < columnCount; c++) {
         for (let r = 0; r < rowCount; r++) {
@@ -97,7 +98,7 @@ function hitDetection() {
                     dy = -dy;
                     b.status = 0;
                     score++;
-                    // Check win
+                    // Mirar si se ganó
                     if (score === rowCount * columnCount) {
                         alert('You Win!');
                         document.location.reload();
@@ -108,7 +109,7 @@ function hitDetection() {
     }
 }
 
-// Main function
+// Funcion para iniciar el juego
 function init() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     trackScore();
@@ -117,31 +118,31 @@ function init() {
     drawPaddle();
     hitDetection();
 
-    // Detect left and right walls
+    // Detectar los bordes laterales del cuadro de juego
     if (x + dx > canvas.width - ballRadius || x + dx < ballRadius) {
         dx = -dx;
     }
 
-    // Detect top wall
+    // Detectar el borde superior del cuadro de juego
     if (y + dy < ballRadius) {
         dy = -dy;
     } else if (y + dy > canvas.height - ballRadius) {
-        // Detect paddle hits
+        // Detectar el chique con la plataforma inferior
         if (x > paddleX && x < paddleX + paddleWidth) {
             dy = -dy;
         } else {
-            // If ball don't hit paddle
+            // Detectar cuando se pierde el juego
             alert('Game Over!');
             document.location.reload();
         }
     }
 
-    // Bottom wall
+    // Detectar borde inferior del cuadro de juego
     if (y + dy > canvas.height - ballRadius || y + dy < ballRadius) {
         dy = -dy;
     }
 
-    // Move Ball
+    // Movimiento de la bola
     x += dx;
     y += dy;
 }
