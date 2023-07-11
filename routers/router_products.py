@@ -7,7 +7,7 @@ from settings import settings
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
-router = APIRouter(prefix="/product",
+router = APIRouter(prefix="/products",
                    tags=["products"],
                    responses={status.HTTP_404_NOT_FOUND: {"response": "not found"}})
 
