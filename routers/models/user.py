@@ -5,6 +5,6 @@ from .challenge import Challenge
 class User(BaseModel):
     email: str
     points: int
-    redeemHistory: list[tuple]
-    challengeHistory: list[tuple]
+    redeemHistory: list
+    challengeHistory: list
     badges: list[int]
