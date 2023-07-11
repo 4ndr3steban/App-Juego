@@ -7,4 +7,4 @@ class User(BaseModel):
     points: int
     redeemHistory: list
     challengeHistory: list
-    badges: list[int]
+    badges: list
