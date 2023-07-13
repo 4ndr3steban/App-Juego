@@ -42,7 +42,7 @@ maccsheet = gsheet.worksheet("macrochallenges")
 
 # RUTAS --------------------------------------------------- 
 
-@router.get("/{email}/macro", response_model = dict, status_code = status.HTTP_200_OK)
+@router.get("/{email}/macrochall", response_model = dict, status_code = status.HTTP_200_OK)
 async def macrochallenges(email: str):
     """ Obtener los macrochallenges para un usuario
 
@@ -76,7 +76,7 @@ async def macrochallenges(email: str):
     return {"challenges": challenges}
 
 
-@router.get("/{email}/micro", response_model = dict, status_code = status.HTTP_200_OK)
+@router.get("/{email}/microchall", response_model = dict, status_code = status.HTTP_200_OK)
 async def microchallenges(email: str):
     """ Obtener los challenges para un usuario
 
