@@ -275,7 +275,8 @@ async def addchallenge(email: str, challenge: dict):
     # Obtener las insigneas y sumar 1 a la correspondiente
     badges_cat = ["water", "air", "land", "fire"]
     badges = user.badges
-    badges[badges_cat.index(challenge["category"])] += 1
+    categ = challenge["category"].lower()
+    badges[badges_cat.index(categ)] += 1
 
     ansbadg = ""
 
