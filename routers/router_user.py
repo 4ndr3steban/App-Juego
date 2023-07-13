@@ -174,7 +174,7 @@ async def redeemhist(email: str):
 
 
 
-@router.post("/{email}/addproduct", response_model= dict, status_code = status.HTTP_200_OK)
+@router.post("/{email}/doprod", response_model= dict, status_code = status.HTTP_200_OK)
 async def addchallenge(email: str, product: Product):
     """ Agregar una nueva recompensa reclamada al historial
 
@@ -227,7 +227,7 @@ async def addchallenge(email: str, product: Product):
         return {"message": "successfull"}
     
 
-@router.post("/{email}/addchallenge", response_model= dict, status_code = status.HTTP_200_OK)
+@router.post("/{email}/dochall", response_model= dict, status_code = status.HTTP_200_OK)
 async def addchallenge(email: str, challenge: dict):
     """ Agregar un nuevo reto cumplido al historial de un usuario
 
