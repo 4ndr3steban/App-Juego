@@ -46,9 +46,6 @@ async def products(email: str):
 
     -input: email
     -output: dict
-
-    Se obtienen los productos filtrando los que el usuario
-    ya ha redimido (se obtienen los productos No redimidos)
     """
 
     # Obtener el usuario
@@ -61,13 +58,6 @@ async def products(email: str):
     
     # Se obtiene la lista de productos de la db
     products_list = search_products()
-
-    # Se obtienen los productos del historial del usuario y sus titulos
-    prodHist = user.redeemHistory
-    names = [prod[0] for prod in prodHist]
-
-    # Se filtran los productos que no esten en el historial
-    products_list = list(filter(lambda x: x.name not in names, products_list))
 
     return {"products": products_list}
 
@@ -135,13 +125,14 @@ def search_products():
     # Recorrer cada dato de la hoja
     for prod in list_of_dicts:
         # Obtener cada dato
-        l1 = prod["name"]
-        l2 = int(prod["cost"])
-        l3 = prod["category"]
-        l4 = prod["image"]
+        l1 = prod["id"]
+        l2 = prod["name"]
+        l3 = int(prod["cost"])
+        l4 = prod["category"]
+        l5 = prod["image"]
 
         # Instanciar el producto y agregarlo a la lista
-        product = Product(name= l1, cost= l2, category= l3, img= l4)
+        product = Product(id= l1, name= l2, cost= l3, category= l4, img= l5)
         list_products.append(product)
 
     return list_products

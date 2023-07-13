@@ -1,7 +1,8 @@
 ### Challenge API ###
 
 from fastapi import APIRouter, HTTPException, status
-from .models.challenge import Challenge
+from .models.microchallenge import microChallenge
+from .models.macrochallenge import macroChallenge
 from .models.user import User
 from settings import settings
 import gspread
@@ -32,7 +33,8 @@ gc = gspread.service_account_from_dict(credentials)
 gsheet = gc.open("database")
 
 wsheet = gsheet.worksheet("usuarios")
-csheet = gsheet.worksheet("challenges")
+miccsheet = gsheet.worksheet("microchallenges")
+maccsheet = gsheet.worksheet("macrochallenges")
 
 
 # ---------------------------------------------------------
@@ -40,8 +42,42 @@ csheet = gsheet.worksheet("challenges")
 
 # RUTAS --------------------------------------------------- 
 
-@router.get("/{email}", response_model = dict, status_code = status.HTTP_200_OK)
-async def challenges(email: str):
+@router.get("/{email}/macro", response_model = dict, status_code = status.HTTP_200_OK)
+async def macrochallenges(email: str):
+    """ Obtener los macrochallenges para un usuario
+
+    -input: email
+    -output: dict
+
+    Se obtienen los macrochallenges filtrando los que el usuario
+    ya ha realizado
+    """
+
+    # Se busca el usuario
+    user = search_user(email)
+
+    # Manejo de error
+    if type(user) != User:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="user not found")
+    
+    # Se obtienen los challenges de la db
+    challenges = search_macrochallenges()
+
+    # Se obtienen los challenges del historial del usuario y sus titulos
+    challHist = user.challengeHistory
+    titles = [challenge[0] for challenge in challHist]
+
+    # Se filtran los challenges que esten en los titulos del historial
+    for chall in challenges:
+        if chall.name in titles:
+            chall.completed = True
+
+    return {"challenges": challenges}
+
+
+@router.get("/{email}/micro", response_model = dict, status_code = status.HTTP_200_OK)
+async def microchallenges(email: str):
     """ Obtener los challenges para un usuario
 
     -input: email
@@ -60,14 +96,16 @@ async def challenges(email: str):
             status_code=status.HTTP_404_NOT_FOUND, detail="user not found")
     
     # Se obtienen los challenges de la db
-    challenges = search_challenges()
+    challenges = search_microchallenges()
 
     # Se obtienen los challenges del historial del usuario y sus titulos
     challHist = user.challengeHistory
     titles = [challenge[0] for challenge in challHist]
 
-    # Se filtran los challenges que no esten en los titulos del historial
-    challenges = list(filter(lambda x: x.title not in titles, challenges))
+    # Se filtran los challenges que esten en los titulos del historial
+    for chall in challenges:
+        if chall.name in titles:
+            chall.completed = True
 
     return {"challenges": challenges}
 
@@ -115,46 +153,76 @@ def search_user(email: str):
         return {"message": "user not found"}
     
 
-def search_challenges():
-    """ Obtener los challenges de la db
+def search_macrochallenges():
+    """ Obtener los macrochallenges de la db
 
     -input: 
     -output: list
 
     Se buscan y guardan en una lista todos los
-    challenges de la db
+    macrochallenges de la db
     """
 
     # Se obtienen todos los datos de la hoja
-    list_of_dicts = csheet.get_all_records()
+    list_of_mac = maccsheet.get_all_records()
 
     # Lista para guardar los challenges
     list_challenges = []
 
     # Recorrer cada dato de la hoja
-    for chall in list_of_dicts:
+    for mac in list_of_mac:
 
-        # Obtener cada dato 
-        l1 = chall["title"]
-        l2 = chall["cluster"]
-        l3 = int(chall["points"])
-        l4 = chall["image"]
-
-        l5 = chall["ismacro"]
-        if l5 == "true":
-            l5 = True
-        else:
-            l5 = False
-
-        l6 = int(chall["exp_time"])
-        l7 = chall["form"]
+        # Obtener cada dato
+        l1 = mac["id"]
+        l2 = mac["category"]
+        l3 = int(mac["points"])
+        l4 = mac["completed"]
+        l5 = mac["name"]
+        l6 = mac["image"]
+        l7 = mac["bg_color"]
+        l8 = mac["time"]
+        l9 = mac["forms"]
 
         # Instanciar el challenge y agregarlo a la lista
-        challenge = Challenge(title=l1, cluster=l2, points=l3, image=l4, ismacro=l5, exp_time=l5, form=l7)
+        challenge = macroChallenge(id= l1, category= l2, points= l3, completed= l4, name= l5, image= l6, bg_color= l7, time= l8, forms= l9)
         list_challenges.append(challenge)
 
     return list_challenges
     
+
+def search_microchallenges():
+    """ Obtener los microchallenges de la db
+
+    -input: 
+    -output: list
+
+    Se buscan y guardan en una lista todos los
+    microchallenges de la db
+    """
+
+    # Se obtienen todos los datos de la hoja
+    list_of_mic = miccsheet.get_all_records()
+
+    # Lista para guardar los challenges
+    list_challenges = []
+
+    # Recorrer la lista de microchallenges
+    for mic in list_of_mic:
+
+        # Obtener cada dato
+        l1 = mic["id"]
+        l2 = mic["category"]
+        l3 = int(mic["points"])
+        l4 = mic["completed"]
+        l5 = mic["name"]
+        l6 = mic["icon"]
+        l7 = mic["bg_color"]
+
+        # Instanciar el challenge y agregarlo a la lista
+        challenge = microChallenge(id= l1, category= l2, points= l3, completed= l4, name= l5, icon= l6, bg_color= l7)
+        list_challenges.append(challenge)
+
+    return list_challenges
 
 def search_row(email: str):
     """ Buscar la fila en la cual se encuentra un usuario

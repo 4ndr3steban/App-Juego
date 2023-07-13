@@ -3,7 +3,8 @@
 from fastapi import APIRouter, HTTPException, status
 from .models.user import User
 from .models.product import Product
-from .models.challenge import Challenge
+from .models.microchallenge import microChallenge
+from .models.macrochallenge import macroChallenge
 from settings import settings
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
@@ -36,7 +37,8 @@ gsheet = gc.open("database")
 
 # Abrir hojas
 wsheet = gsheet.worksheet("usuarios")
-csheet = gsheet.worksheet("challenges")
+miccsheet = gsheet.worksheet("microchallenges")
+maccsheet = gsheet.worksheet("macrochallenges")
 psheet = gsheet.worksheet("products")
 
 # ---------------------------------------------------------
@@ -152,6 +154,26 @@ async def infouser(email: str):
     return ans
 
 
+@router.get("/{email}/redeemhist", response_model= dict, status_code = status.HTTP_200_OK)
+async def redeemhist(email: str):
+    """ Devuelve el historial de productos reclamados por un usuario
+    -input: email
+    -output: dict
+
+    """
+
+    # Buscar el usuario
+    user = search_user(email)
+
+    # Manejo de error
+    if type(user) != User:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="user not found")
+    
+    return {"redeemHistory": user.redeemHistory}
+
+
+
 @router.post("/{email}/addproduct", response_model= dict, status_code = status.HTTP_200_OK)
 async def addchallenge(email: str, product: Product):
     """ Agregar una nueva recompensa reclamada al historial
@@ -206,7 +228,7 @@ async def addchallenge(email: str, product: Product):
     
 
 @router.post("/{email}/addchallenge", response_model= dict, status_code = status.HTTP_200_OK)
-async def addchallenge(email: str, challenge: Challenge):
+async def addchallenge(email: str, challenge: dict):
     """ Agregar un nuevo reto cumplido al historial de un usuario
 
     -input: email
@@ -227,9 +249,9 @@ async def addchallenge(email: str, challenge: Challenge):
 
     # Obetener los titulos de los challenges de la db
     challenges_list = search_challenges()
-    titles = [challenge.title for challenge in challenges_list]
+    titles = [challenge.name for challenge in challenges_list]
 
-    if challenge.title not in titles:
+    if challenge["name"] not in titles:
         # Error si el challenge ingresado no existe en la db
         raise HTTPException(
             status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="challenge not found")
@@ -237,7 +259,7 @@ async def addchallenge(email: str, challenge: Challenge):
 
     # Obtener el historial y agregar el nuevo reto
     challHist = user.challengeHistory
-    challHist.append([challenge.title, challenge.points])
+    challHist.append([challenge["name"], challenge["points"]])
 
     anshist = ""
 
@@ -248,12 +270,12 @@ async def addchallenge(email: str, challenge: Challenge):
     wsheet.update_cell(search_row(user.email)+1, 4, anshist[:-2])
 
     # Sumar los puntos
-    wsheet.update_cell(search_row(user.email)+1, 2, user.points + challenge.points)
+    wsheet.update_cell(search_row(user.email)+1, 2, user.points + challenge["points"])
 
     # Obtener las insigneas y sumar 1 a la correspondiente
     badges_cat = ["water", "air", "land", "fire"]
     badges = user.badges
-    badges[badges_cat.index(challenge.cluster)] += 1
+    badges[badges_cat.index(challenge["category"])] += 1
 
     ansbadg = ""
 
@@ -263,7 +285,7 @@ async def addchallenge(email: str, challenge: Challenge):
 
     wsheet.update_cell(search_row(user.email)+1, 5, ansbadg[:-2])
         
-    return {"urlForms": challenge.form}
+    return {"message": "successful"}
 
 
 # HELPERS --------------------------------------------------------    
@@ -319,31 +341,43 @@ def search_challenges():
     """
 
     # Se obtienen todos los datos de la hoja
-    list_of_dicts = csheet.get_all_records()
+    list_of_mac = maccsheet.get_all_records()
+    list_of_mic = miccsheet.get_all_records()
 
     # Lista para guardar los challenges
     list_challenges = []
 
     # Recorrer cada dato de la hoja
-    for chall in list_of_dicts:
+    for mac in list_of_mac:
 
-        # Obtener cada dato 
-        l1 = chall["title"]
-        l2 = chall["cluster"]
-        l3 = int(chall["points"])
-        l4 = chall["image"]
-
-        l5 = chall["ismacro"]
-        if l5 == "true":
-            l5 = True
-        else:
-            l5 = False
-
-        l6 = int(chall["exp_time"])
-        l7 = chall["form"]
+        # Obtener cada dato
+        l1 = mac["id"]
+        l2 = mac["category"]
+        l3 = int(mac["points"])
+        l4 = mac["completed"]
+        l5 = mac["name"]
+        l6 = mac["image"]
+        l7 = mac["bg_color"]
+        l8 = mac["time"]
+        l9 = mac["forms"]
 
         # Instanciar el challenge y agregarlo a la lista
-        challenge = Challenge(title=l1, cluster=l2, points=l3, image=l4, ismacro=l5, exp_time=l5, form=l7)
+        challenge = macroChallenge(id= l1, category= l2, points= l3, completed= l4, name= l5, image= l6, bg_color= l7, time= l8, forms= l9)
+        list_challenges.append(challenge)
+
+    for mic in list_of_mic:
+
+        # Obtener cada dato
+        l1 = mic["id"]
+        l2 = mic["category"]
+        l3 = int(mic["points"])
+        l4 = mic["completed"]
+        l5 = mic["name"]
+        l6 = mic["icon"]
+        l7 = mic["bg_color"]
+
+        # Instanciar el challenge y agregarlo a la lista
+        challenge = microChallenge(id= l1, category= l2, points= l3, completed= l4, name= l5, icon= l6, bg_color= l7)
         list_challenges.append(challenge)
 
     return list_challenges
@@ -368,13 +402,14 @@ def search_products():
     # Recorrer cada dato de la hoja
     for prod in list_of_dicts:
         # Obtener cada dato
-        l1 = prod["name"]
-        l2 = int(prod["cost"])
-        l3 = prod["category"]
-        l4 = prod["image"]
+        l1 = prod["id"]
+        l2 = prod["name"]
+        l3 = int(prod["cost"])
+        l4 = prod["category"]
+        l5 = prod["image"]
 
         # Instanciar el producto y agregarlo a la lista
-        product = Product(name= l1, cost= l2, category= l3, img= l4)
+        product = Product(id= l1, name= l2, cost= l3, category= l4, img= l5)
         list_products.append(product)
 
     return list_products
